@@ -3,3 +3,5 @@ zig-out
 data
 *.a
 *.o
+perf*
+*.svg

@@ -4,7 +4,7 @@ const b = @import("main.zig");
 const pp = std.debug.print;
 
 test "mmap" {
-    const ffname = "data/measurements.txt";
+    const ffname = "/home/jason/devel/zig-1brc/data/measurements.txt";
     const span = try b.map_file(ffname[0..]);
     pp("mapped {s} for {d} bytes\n", .{ ffname, span.len });
 }
@@ -18,21 +18,22 @@ test "parse num" {
 
 test "parseline" {
     const text: []const u8 = "one;3.4\ntwo;-12.3\nthree;0.1\n";
+    var ret: b.ParsedLine = undefined;
 
-    const a = b.parse_line(text, 0);
-    try tt.expectEqualSlices(u8, @as([]const u8, "one"[0..]), a[0]);
-    try tt.expectEqual(@as(i32, 340), a[1]);
-    try tt.expectEqual(@as(u64, 8), a[2]);
+    var p = b.parse_line(text, 0, &ret);
+    try tt.expectEqualSlices(u8, @as([]const u8, "one"[0..]), ret.name);
+    try tt.expectEqual(@as(i32, 340), ret.num);
+    try tt.expectEqual(@as(u64, 8), p);
 
-    const bb = b.parse_line(text, a[2]);
-    try tt.expectEqualSlices(u8, @as([]const u8, "two"[0..]), bb[0]);
-    try tt.expectEqual(@as(i32, -1230), bb[1]);
-    try tt.expectEqual(@as(u64, 18), bb[2]);
+    p = b.parse_line(text, p, &ret);
+    try tt.expectEqualSlices(u8, @as([]const u8, "two"[0..]), ret.name);
+    try tt.expectEqual(@as(i32, -1230), ret.num);
+    try tt.expectEqual(@as(u64, 18), p);
 
-    const c = b.parse_line(text, bb[2]);
-    try tt.expectEqualSlices(u8, @as([]const u8, "three"[0..]), c[0]);
-    try tt.expectEqual(@as(i32, 10), c[1]);
-    try tt.expectEqual(@as(u64, text.len), c[2]);
+    p = b.parse_line(text, p, &ret);
+    try tt.expectEqualSlices(u8, @as([]const u8, "three"[0..]), ret.name);
+    try tt.expectEqual(@as(i32, 10), ret.num);
+    try tt.expectEqual(@as(u64, text.len), p);
 }
 
 test "parse range" {
@@ -67,7 +68,7 @@ test "spin_out" {
 }
 
 test "map and spin" {
-    const file = "data/mill.txt";
+    const file = "/home/jason/devel/zig-1brc/data/mill.txt";
     const text = try b.map_file(file[0..]);
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const alloc = arena.allocator();

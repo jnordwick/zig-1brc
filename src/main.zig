@@ -3,8 +3,8 @@ const lin = std.os.linux;
 const hm = std.hash_map;
 const Allocator = std.mem.Allocator;
 
-pub const cache_line_size = 128;
-pub const nthreads = 14;
+pub const cache_line_size = 64;
+pub const nthreads = 12;
 pub const ht_capacity = 10000;
 pub const buf_writer_size = 1024 * 200;
 
@@ -20,7 +20,7 @@ pub fn map_file(fname: []const u8) ![]u8 {
     return addr[0..len];
 }
 
-pub const Map = hm.HashMapUnmanaged([]const u8, Stat, Context, 60);
+pub const Map = hm.HashMapUnmanaged([]const u8, Stat, Context, 50);
 
 pub const PerThread = struct {
     const data_size = @sizeOf(Map) + 4 * ht_capacity;
@@ -48,7 +48,11 @@ pub const Stat = struct {
 const Context = struct {
     pub fn hash(self: @This(), s: []const u8) u64 {
         _ = self;
-        return std.hash.XxHash64.hash(0, s);
+        var h: u64 = 43029;
+        for (s) |c| {
+            h = (h * 65) ^ c;
+        }
+        return h;
     }
     pub fn eql(self: @This(), a: []const u8, b: []const u8) bool {
         _ = self;
@@ -74,36 +78,37 @@ pub fn parse_num(str: []const u8) i32 {
         const dig = str[p] - '0';
         num = num * 10 + dig;
     }
-    const n = num * sign;
-    return n;
+    return num * sign;
 }
 
-pub fn parse_line(span: []const u8, pos: u64) struct { []const u8, i32, u64 } {
-    var p = pos;
-    while (span[p] != ';') : (p += 1) {}
-    const name = span[pos..p];
-    p += 1;
-    const dec_start = p;
-    while (span[p] != '\n') : (p += 1) {}
-    const dec = span[dec_start..p];
-    p += 1;
-    const num = parse_num(dec);
-    return .{ name, num, p };
+pub const ParsedLine = struct {
+    name: []const u8,
+    num: i32,
+};
+
+pub fn parse_line(span: []const u8, pos: u64, ret: *ParsedLine) u64 {
+    const semi = std.mem.indexOfScalarPos(u8, span, pos, ';').?;
+    const nl = std.mem.indexOfScalarPos(u8, span, semi + 1, '\n').?;
+
+    ret.name = span[pos..semi];
+    const dec = span[semi + 1 .. nl];
+    ret.num = parse_num(dec);
+    return nl + 1;
 }
 
 pub fn parse_span(span: []const u8, pt: *PerThread) void {
+    var parse: ParsedLine = undefined;
     var p: u64 = 0;
     while (p < span.len) {
-        const x = parse_line(span, p);
-        var r = pt.m.getOrPutAssumeCapacity(x[0]);
+        p = parse_line(span, p, &parse);
+        var r = pt.m.getOrPutAssumeCapacity(parse.name);
         if (!r.found_existing) {
-            r.value_ptr.sum = x[1];
+            r.value_ptr.sum = parse.num;
             r.value_ptr.n = 1;
         } else {
-            r.value_ptr.sum += x[1];
+            r.value_ptr.sum += parse.num;
             r.value_ptr.n += 1;
         }
-        p = x[2];
     }
 }
 
