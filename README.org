@@ -10,6 +10,15 @@ some of the base data files from the original github:
 
 [[https://github.com/gunnarmorling/1brc]]
 
+* Strategy
+The file is mmaped and split into regions for each thread. Each thread hashes
+the station names and keeps a running sum and count. It treats all numbers as
+integers of fixed precision (2 decimals - the second for rounding). It then
+merges the hash tables, sorts the aggregations table keys after iterating
+through the table, the looks up the keys on order with the stats and prints out
+the ints (inserting the spot in the right place).
+
+
 * Optimizations
 - [ ] The hash table is really slow
 - [ ] dont iterate over the hashtable and just grab the arrays out of it
