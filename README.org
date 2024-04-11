@@ -1,0 +1,18 @@
+* 1 Billion Row Challenge in zig
+This was an attempt to do the billion row challenge in zig and use std. I wanted
+to see if it is any better than it was six months ago.  A lot of optimizations
+could be done and cut significant time from it.
+
+The code is a little messy, but it was done in half a day and I'm tired.
+
+The data files aren't included but the script to generate them is. You can get
+some of the base data files from the original github:
+
+[[https://github.com/gunnarmorling/1brc]]
+
+* Optimizations
+- [ ] The hash table is really slow
+- [ ] dont iterate over the hashtable and just grab the arrays out of it
+- [ ] sort in the original hashtable arrays
+- [ ] pairwise merge in the threads recursivey
+- [ ] turn the station names in some ints and direct hash them
