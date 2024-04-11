@@ -3,17 +3,20 @@ const lin = std.os.linux;
 const hm = std.hash_map;
 const Allocator = std.mem.Allocator;
 
-pub const cache_line_size = 64;
-pub const nthreads = 12;
+pub const cache_line_size = 128;
+pub const nthreads = 14;
 pub const ht_capacity = 10000;
-pub const buf_writer_size = 1024 * 500;
+pub const buf_writer_size = 1024 * 200;
 
 pub fn map_file(fname: []const u8) ![]u8 {
     const file = try std.fs.cwd().openFile(fname, .{});
     const stat = try file.stat();
     const len = stat.size;
-    const int_addr = lin.mmap(null, stat.size, lin.PROT.READ, .{ .TYPE = .PRIVATE }, file.handle, 0);
+    const int_addr = lin.mmap(null, stat.size, lin.PROT.READ, .{ .TYPE = .PRIVATE, .POPULATE = true }, file.handle, 0);
     const addr: [*]u8 = @ptrFromInt(int_addr);
+    const advret = lin.madvise(addr, stat.size, lin.MADV.WILLNEED | lin.MADV.HUGEPAGE);
+    if (advret != 0)
+        return error.MadvRet;
     return addr[0..len];
 }
 
@@ -219,12 +222,12 @@ pub fn sort_map(m: *const Map, ks: *[ht_capacity][]const u8) u32 {
         i += 1;
     }
     const sl = ks[0..sz];
-    std.sort.block([]const u8, sl, @as(u32, 0), slice_compare);
+    std.mem.sort([]const u8, sl, @as(u32, 0), slice_compare);
     return sz;
 }
 
 pub fn main() !void {
-    const ffname = "data/zig-1brc/measurements.txt";
+    const ffname = "data/measurements.txt";
     var ks: [ht_capacity][]u8 = undefined;
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const alloc = arena.allocator();
