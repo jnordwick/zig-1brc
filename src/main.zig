@@ -23,10 +23,11 @@ pub fn map_file(fname: []const u8) ![]u8 {
 pub const Map = hm.HashMapUnmanaged([]const u8, Stat, Context, 50);
 
 pub const PerThread = struct {
-    const data_size = @sizeOf(Map) + 4 * ht_capacity;
+    const data_size = @sizeOf(Map) + @sizeOf(std.Thread);
     const _pad_size = b: {
-        const t = cache_line_size - (data_size % cache_line_size);
-        break :b if (t == 0) 0 else t;
+        const rem = data_size % cache_line_size;
+        const pad = cache_line_size - rem;
+        break :b if (rem == 0) 0 else pad;
     };
 
     t: std.Thread = undefined,
@@ -50,7 +51,7 @@ const Context = struct {
         _ = self;
         var h: u64 = 43029;
         for (s) |c| {
-            h = (h * 65) ^ c;
+            h = ((h << 6) + h) ^ c;
         }
         return h;
     }
@@ -232,7 +233,7 @@ pub fn sort_map(m: *const Map, ks: *[ht_capacity][]const u8) u32 {
 }
 
 pub fn main() !void {
-    const ffname = "data/measurements.txt";
+    const ffname = "data/10mill.txt";
     var ks: [ht_capacity][]u8 = undefined;
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const alloc = arena.allocator();

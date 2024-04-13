@@ -3,8 +3,10 @@ const tt = std.testing;
 const b = @import("main.zig");
 const pp = std.debug.print;
 
+const data_home = "/home/jason/devel/zig-1brc/data/";
+
 test "mmap" {
-    const ffname = "/home/jason/devel/zig-1brc/data/measurements.txt";
+    const ffname = data_home ++ "measurements.txt";
     const span = try b.map_file(ffname[0..]);
     pp("mapped {s} for {d} bytes\n", .{ ffname, span.len });
 }
@@ -68,7 +70,7 @@ test "spin_out" {
 }
 
 test "map and spin" {
-    const file = "/home/jason/devel/zig-1brc/data/mill.txt";
+    const file = data_home ++ "1m.txt";
     const text = try b.map_file(file[0..]);
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const alloc = arena.allocator();
