@@ -30,7 +30,7 @@ pub const PerThread = struct {
         break :b if (rem == 0) 0 else pad;
     };
 
-    t: std.Thread = undefined,
+
     m: Map = Map{},
     _pad: [_pad_size]u8 = [_]u8{0} ** _pad_size,
 
